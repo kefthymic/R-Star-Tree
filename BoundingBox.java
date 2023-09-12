@@ -143,6 +143,53 @@ public class BoundingBox implements Serializable {
         }
         this.setBounds(newBounds);
     }
+
+
+    /**Mέθοδος που επιστρέφει true αν το BoundingBox που δίνεται σαν παράμετρος βρίσκεται ολόκληρο
+     * μέσα στο Bounding Box, αλλιώς επιστρέφει false */
+    public boolean seeIfTheGivenBoundingIsAllInsideToThisBoundingBox(BoundingBox givenBoundingBox){
+        for(int i=0;i<this.getDimensions();i++){
+            if(this.getBound(i,false)> givenBoundingBox.getBound(i,false)){
+                return false;
+            }
+            if(this.getBound(i,true)< givenBoundingBox.getBound(i,true)){
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** Μέθοδος που επιστρέφει true αν το BoundingBox βρίσκεται ολόκληρο μέσα στο Bounding Box που δίνεται σαν παράμετρος,
+     * αλλιώς επιστρέφει false */
+    public boolean seeIfThisBoundingBoxIsAllInsideToTheGivenBoundingBox(BoundingBox givenBoundingBox){
+
+        for(int i=0;i<this.getDimensions();i++){
+            if(this.getBound(i,false)< givenBoundingBox.getBound(i,false)){
+                return false;
+            }
+            if(this.getBound(i,true)> givenBoundingBox.getBound(i,true)){
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** Μέθοδος που επιστρέφει true αν το BoundingBox έχει έστω ένα κοινό σημείο με το BoundingBox
+     * που δίνεται ως παράμετρος. Αν δεν έχουν κανένα κοινό σημείο επιστρέφει false. */
+    public boolean seeIfThereIsAtLeastACommonPoint(BoundingBox givenBoundingBox){
+        for(int i=0;i<dimensions;i++) {
+            if (givenBoundingBox.getBound(i, false) > this.getBound(i, true)) {
+                return false;
+            } else if (givenBoundingBox.getBound(i, true) < this.getBound(i, false)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+
+
+
     public void printBounds(){
         for(int i=0;i<dimensions;i++){
             System.out.println(this.getBound(i,false)+","+this.getBound(i,true));
