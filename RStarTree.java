@@ -265,6 +265,101 @@ public class RStarTree {
 
     }
 
+    /** Μέθοδος που βρίσκει τα σημεία που βρίσκονται στο skyline σε χρόνο εκτέλεσης Ο(n^2)
+     * Για κάθε εγγραφή ελέγχει αν κυριαρχείται από έστω και μία άλλη εγγραφη. Αν δεν κυριαρχείται από καμία
+     * ανήκει στο skyline*/
+    public ArrayList<Record> skylineBruteForce(){
+        ArrayList<Record> skyline = new ArrayList<>();
+        Record recordI;
+        Record recordJ;
+        for(int i=0;i<readDataFile.getTotalNumberOfRecords();i++){
+            boolean dominatesAll = true;
+            recordI = readDataFile.getTheData(i);
+            for(int j=0;j<readDataFile.getTotalNumberOfRecords();j++){
+                if(i!=j){
+                    recordJ = readDataFile.getTheData(j);
+                    if(recordJ.dominatesAnotherRecord(recordI)){
+                        dominatesAll = false;
+                        break;
+                    }
+                }
+            }
+            if(dominatesAll){
+                skyline.add(recordI);
+            }
+        }
+        return skyline;
+    }
+    /** βοηθητική μέθοδος για το skyline. Επιστρέφει true αν τα στοιχεία που ήδη βρίσκονται στο skyline
+     * κυριαρχούν επί ενός entry που δέχεται ως παράμετρο (δλδ αν έστω ένα στοιχείο του skyline κυριαρχεί επί του entry) */
+    private boolean skylineDominatesEntry(ArrayList<EntryOfLeaf> skyline, Entry entry){
+        ArrayList<Double> coordinatesOfBottomLeftCorner = new ArrayList<>();
+        for(int i=0;i<entry.getBoundingBox().getDimensions();i++){
+            coordinatesOfBottomLeftCorner.add(entry.getBoundingBox().getBound(i,false));
+        }
+        for(int i=0;i<skyline.size();i++){
+            EntryOfLeaf skylineEntry = skyline.get(i);
+            if(skylineEntry.dominatesAnotherEntry(entry)){
+                return true;
+            }
+        }
+        return false;
+    }
+    /** μέθοδος που επιστρέφει σε ένα Arraylist όλες τις εγγραφές που ανήκουν στο skyline*/
+    public ArrayList<Record> skyline(){
+        ArrayList<EntryOfLeaf> skyline = new ArrayList<>();
+        Node root= indexFile.getTheRoot();
+        ArrayList<Entry> entriesOfRoot = root.getEntries();
+
+        PriorityQueue<Entry> priorityQueue = new PriorityQueue<>();
+        for(int i=0;i<entriesOfRoot.size();i++){
+            priorityQueue.add(entriesOfRoot.get(i));
+        }
+
+
+        while(!priorityQueue.isEmpty()) {
+            Entry nextEntry = priorityQueue.poll(); //το πρώτο entry στην priority queue
+            int childId = (int) nextEntry.getChildId();
+            if (childId == -1) { //είναι σε φύλλο
+                EntryOfLeaf entryOfLeaf = (EntryOfLeaf) nextEntry;
+                boolean dominatesAll = true;
+                for(int i=0;i< skyline.size();i++){
+                    if(skyline.get(i).dominatesAnotherEntryOfLeaf(entryOfLeaf)){
+                        dominatesAll = false;
+                        break;
+                    }
+                }
+                if(dominatesAll==true){ //μπαίνει στο skyline
+                    skyline.add(entryOfLeaf);
+                }
+
+            } else {
+                if(!skylineDominatesEntry(skyline,nextEntry)) { //expand : το πρώτο entry δεν κυριαρχείται εξ ολοκλήρου από την κορυφογραμμή
+                    Node nextNode = indexFile.getNodeFromTheFile(childId); //οπότε προσθέτουμε όλα τα entries που βρίσκονται στον κόμβο-παιδί του στο priority queue
+                    ArrayList<Entry> entries = nextNode.getEntries();
+                    for (int i = 0; i < entries.size(); i++) {
+                        priorityQueue.add(entries.get(i));
+                    }
+                }
+
+            }
+
+        }
+        //Βρίσκουμε τις εγγραφές που αντιστοιχούν στα EntryOfLeaf του skyline
+        ArrayList<Record> skylineWithRecords = new ArrayList<>();
+        for(int i=0;i<skyline.size();i++){
+            RecordId recordId = skyline.get(i).getRecordId();
+            int slot = recordId.getSlot();
+            short block = recordId.getBlock();
+            Record record = readDataFile.getTheData(block,slot);
+            skylineWithRecords.add(record);
+        }
+
+
+        return skylineWithRecords;
+    }
+
+
     public static void main(String[] args){
         ReadDataFile readDataFile1= new ReadDataFile();
         Record record;
