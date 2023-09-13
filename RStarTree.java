@@ -1,5 +1,6 @@
 import java.io.File;
 import java.util.ArrayList;
+import java.util.PriorityQueue;
 
 public class RStarTree {
     IndexFile indexFile;
