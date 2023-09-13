@@ -187,7 +187,14 @@ public class BoundingBox implements Serializable {
         return true;
     }
 
-
+    /**Μέθοδος που επιστρέφει την απόσταση Μανχάταν μεταξύ της κάτω δεξιάς γωνίας του BoundingBox και της αρχής των αξόνων Ο(0,...,0) */
+    public double findMinDist(){
+        double minDist = 0;
+        for(int i=0;i<this.dimensions;i++){
+            minDist = minDist + this.getBound(i,false);
+        }
+        return minDist;
+    }
 
 
     public void printBounds(){
