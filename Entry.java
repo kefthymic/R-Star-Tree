@@ -1,12 +1,14 @@
 import java.io.Serializable;
 import java.util.ArrayList;
 
-public class Entry implements Serializable {
+public class Entry implements Serializable, Comparable<Entry> {
     private BoundingBox boundingBox;
     private long childId;
 
     public Entry(BoundingBox boundingBox){
+
         this.boundingBox = boundingBox;
+        this.childId = -1;
     }
     public Entry(BoundingBox boundingBox, long childId){
         this.boundingBox = boundingBox;
@@ -77,21 +79,23 @@ public class Entry implements Serializable {
         return sortedEntries;
     }
 
-
-
-
-
-
-
-    public boolean seeIfTheGivenBoundingIsAllInsideToThisBoundingBox(BoundingBox givenBoundingBox){
-        return true;
+    public double findMinDist(){ /**Απόσταση Μαναχαταν του Entry από την αρχή των αξόνων*/
+        return this.boundingBox.findMinDist();
     }
 
-    public boolean seeIfThisBoundingBoxIsAllInsideToTheGivenBoundingBox(BoundingBox givenBoundingBox){
-        return true;
+   /**Υλοποιειεί το Comparable. Χρειάζεται για το skyline.
+   σύγκριση με ένα άλλο Entry (σε σχέση με την απόσταση Μανχάταν από την αρψή των αξόνων.*/
+    public int compareTo(Entry anotherEntry){
+        if(this.findMinDist()<anotherEntry.findMinDist()){
+            return -1;
+        }
+        else if(this.findMinDist()> anotherEntry.findMinDist()){
+            return 1;
+        }
+        else{
+            return 0;
+        }
     }
 
-    public boolean seeIfThereIsAtLeastACommonPoint(BoundingBox givenBoundingBox){
-        return true;
-    }
+
 }
