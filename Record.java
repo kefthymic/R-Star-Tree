@@ -23,6 +23,27 @@ public class Record {
         return this.name;
     }
 
+    /** Μέθοδος που επιστρέφει true αν η Record κυριαρχεί επί μιας άλλης Record που δέχεται σαν παράμετρο */
+    public boolean dominatesAnotherRecord(Record anotherRecord){
+        ArrayList<Double> anotherRecordCoordinates = anotherRecord.getCoordinates();
+        boolean recordIsBetterThanAnotherRecordInAtLeastOneAttribute = false;
+
+        for(int i=0;i<this.coordinates.size();i++){
+            if(anotherRecordCoordinates.get(i)<this.coordinates.get(i)){
+                return false;
+            }
+            if(this.coordinates.get(i)<anotherRecordCoordinates.get(i)){
+                recordIsBetterThanAnotherRecordInAtLeastOneAttribute = true;
+            }
+        }
+        if(recordIsBetterThanAnotherRecordInAtLeastOneAttribute){
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+
     @Override
     public String toString() {
         String data="";
