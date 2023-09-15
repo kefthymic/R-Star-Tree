@@ -587,14 +587,16 @@ public class RStarTree {
         knn.add(record);
 
         for(int i=1;i<readDataFile.getTotalNumberOfRecords();i++){
+            boolean inserted = false;
             record = readDataFile.getTheData(i);
             for(int j=0;j<knn.size();j++){
                 if(record.distanceFromPoint(pointCoordinates)<knn.get(j).distanceFromPoint(pointCoordinates)){
                     knn.add(j,record);
+                    inserted = true;
                     break;
                 }
             }
-            if(knn.size()<k){
+            if(knn.size()<k && !inserted){
                 knn.add(record);
             }
             if(knn.size()==k+1){
@@ -653,13 +655,15 @@ public class RStarTree {
 
         for(int i=1;i<entriesOfLeaf.size();i++){
             entryOfLeaf = entriesOfLeaf.get(i);
+            boolean inserted = false;
             for(int j=0;j<knn.size();j++){
                 if(entryOfLeaf.getBoundingBox().findMinDistFromPoint(pointCoordinates)<knn.get(j).getBoundingBox().findMinDistFromPoint(pointCoordinates)){
                     knn.add(j,entryOfLeaf);
+                    inserted = true;
                     break;
                 }
             }
-            if(knn.size()<k){
+            if(knn.size()<k && !inserted){
                 knn.add(entryOfLeaf);
             }
             if(knn.size()==k+1){
@@ -684,6 +688,9 @@ public class RStarTree {
                 entryOfLeaf = (EntryOfLeaf) entry;
                 double distanceFromPoint = entryOfLeaf.getBoundingBox().findMinDistFromPoint(pointCoordinates);
                 for(int j=0;j<knn.size();j++){
+                    if(distanceFromPoint==knn.get(j).getBoundingBox().findMinDistFromPoint(pointCoordinates)){ //εχει μπει ηδη
+                        break;
+                    }
                     if(distanceFromPoint<knn.get(j).getBoundingBox().findMinDistFromPoint(pointCoordinates)){ //ανήκει στους πλησιέστερους γείτονες
                         knn.add(j,entryOfLeaf);
                         break;
