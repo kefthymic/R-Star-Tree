@@ -578,6 +578,154 @@ public class RStarTree {
         return solution;
     }
 
+    /**Μέθοδος που υπολογίζει και επιστρέφει σε ένα Arraylist<Record> τους κ πλησιέστερους γείτονες σειριακά. */
+    public ArrayList<Record> knnLinear(int k, ArrayList<Double> pointCoordinates){
+        double distance;
+        ArrayList<Record> knn = new ArrayList<>();
+
+        Record record = readDataFile.getTheData(0);
+        knn.add(record);
+
+        for(int i=1;i<readDataFile.getTotalNumberOfRecords();i++){
+            record = readDataFile.getTheData(i);
+            for(int j=0;j<knn.size();j++){
+                if(record.distanceFromPoint(pointCoordinates)<knn.get(j).distanceFromPoint(pointCoordinates)){
+                    knn.add(j,record);
+                    break;
+                }
+            }
+            if(knn.size()<k){
+                knn.add(record);
+            }
+            if(knn.size()==k+1){
+                knn.remove(k);
+            }
+
+        }
+        return knn;
+    }
+
+    /**Μέθοδος που δέχεται έναν ακέραιο κ και τις συντεταγμένες ενός σημείου και επιστρέφει του κ πλησιέστερους γείτονες του σημείου */
+    public ArrayList<Record> knn(int k, ArrayList<Double> pointCoordinates){
+        Node root= indexFile.getTheRoot(); //ξεκινάει από ρίζα με στόχο να βρει το φύλλο που απέχει το λιγότερο από το σημείο
+        ArrayList<Entry> entriesOfRoot = root.getEntries();
+        if(entriesOfRoot.get(0).getChildId()==-1){ //αν η ρίζσ είναι φύλλο, σημαίνει ότι υπάρχει μόνος ένας κόμβος στο δέντρο, οπότε καλείται η εύρεση των κ γειτόνων σειριακά
+            return knnLinear(k,pointCoordinates);
+        }
+        int posOfBestEntry = 0;  //λαμβάνεται ως entry αναφοράς το πρώτο entry του κόμβου
+        double minDistance = entriesOfRoot.get(0).getBoundingBox().findMinDistFromPoint(pointCoordinates);
+        for(int i=1;i<entriesOfRoot.size();i++){
+            if(entriesOfRoot.get(i).getBoundingBox().findMinDistFromPoint(pointCoordinates)<minDistance){
+                minDistance = entriesOfRoot.get(i).getBoundingBox().findMinDistFromPoint(pointCoordinates);
+                posOfBestEntry = i;
+            }
+        }
+        //έχει βρεθεί το entry του κόμβου που απέχει τη λιγότερη απόσταση από το σημείο
+        int childId = (int)entriesOfRoot.get(posOfBestEntry).getChildId();
+        Node nextNode = indexFile.getNodeFromTheFile(childId); //έπειτα πηγαίνει στον κόμβο που δείχνει το καλύτερο entry που βρέθηκε πριν
+        while(nextNode.getLevel()>0){  //όσο δε βρισκόμαστε σε φύλλα η διαδικασία αυτή επαναλαμβάνεται
+            ArrayList<Entry> entries = nextNode.getEntries();
+            posOfBestEntry = 0;
+            minDistance = entries.get(0).getBoundingBox().findMinDistFromPoint(pointCoordinates);
+            for(int i=1;i<entries.size();i++){
+                if(entries.get(i).getBoundingBox().findMinDistFromPoint(pointCoordinates)<minDistance){
+                    minDistance = entries.get(i).getBoundingBox().findMinDistFromPoint(pointCoordinates);
+                    posOfBestEntry = i;
+                }
+            }
+            childId = (int)entries.get(posOfBestEntry).getChildId();
+            nextNode = indexFile.getNodeFromTheFile(childId);
+        }
+
+
+        //μετά το τέλος του loop είμαστε σε φύλλο
+        //οπότε σειριακά εξετάζονται μόνο τα στοιχεία του φύλλου και εντοπίζονται οι κ πλησιέστεροι γείτονες(που βρίσκονται μέσα στον κόμβο)
+        double distance;
+        ArrayList<EntryOfLeaf> knn = new ArrayList<>();
+        ArrayList<EntryOfLeaf> entriesOfLeaf = new ArrayList<>();
+        ArrayList<Entry> entries = nextNode.getEntries(); // τα entries που βρίσκονται στο φύλλο γίνονται EntryOfLeaf
+        for(int i=0;i<entries.size();i++){
+            EntryOfLeaf entryOfLeaf = (EntryOfLeaf) entries.get(i);
+            entriesOfLeaf.add(entryOfLeaf);
+        }
+        EntryOfLeaf entryOfLeaf = entriesOfLeaf.get(0);
+        knn.add(entryOfLeaf);
+
+        for(int i=1;i<entriesOfLeaf.size();i++){
+            entryOfLeaf = entriesOfLeaf.get(i);
+            for(int j=0;j<knn.size();j++){
+                if(entryOfLeaf.getBoundingBox().findMinDistFromPoint(pointCoordinates)<knn.get(j).getBoundingBox().findMinDistFromPoint(pointCoordinates)){
+                    knn.add(j,entryOfLeaf);
+                    break;
+                }
+            }
+            if(knn.size()<k){
+                knn.add(entryOfLeaf);
+            }
+            if(knn.size()==k+1){
+                knn.remove(k);
+            }
+
+        }
+        //υπολογίζεται τώρα η ακτίνα (απόστση μεταξύ κ-οστου γείτονα και σημείου)
+        double radius = knn.get(knn.size()-1).getBoundingBox().findMinDistFromPoint(pointCoordinates);
+
+        //ξεκινάει πάλι από τη ρίζα
+        root= indexFile.getTheRoot();
+        entriesOfRoot = root.getEntries();
+        ArrayList<Entry> entriesToCheck = new ArrayList<>();
+        for(int i=0;i<entriesOfRoot.size();i++){ //τοποθετεί όλα τα στοιχεία της ρίζας σε ένα Arraylist entriesToCheck
+            entriesToCheck.add(entriesOfRoot.get(i));
+        }
+
+        while(entriesToCheck.size()>0){  //όσο υπάρχουν ακόμα entries που πρέπει να ελεγχθούν
+            Entry entry = entriesToCheck.get(0); // το entry που θα ελεγχθεί
+            if(entry.getChildId()==-1){ //entry είναι σε φύλλο
+                entryOfLeaf = (EntryOfLeaf) entry;
+                double distanceFromPoint = entryOfLeaf.getBoundingBox().findMinDistFromPoint(pointCoordinates);
+                for(int j=0;j<knn.size();j++){
+                    if(distanceFromPoint<knn.get(j).getBoundingBox().findMinDistFromPoint(pointCoordinates)){ //ανήκει στους πλησιέστερους γείτονες
+                        knn.add(j,entryOfLeaf);
+                        break;
+                    }
+                }
+                if(knn.size()<k){
+                    knn.add(entryOfLeaf);
+                }
+                if(knn.size()==k+1){
+                    knn.remove(k);
+                }
+
+            }
+            else{ //entry είναι σε μη φύλλο
+                if(entry.getBoundingBox().findMinDistFromPoint(pointCoordinates)<radius){ //η ελάχιστη απόσταση του entry και του σημείου είναι μικρότερη της ακτίνας, οπότε γίνεται expand
+                    childId =(int) entry.getChildId();
+                    nextNode = indexFile.getNodeFromTheFile(childId);
+                    entries = nextNode.getEntries();
+                    for(int i=0;i<entries.size();i++){ //expand, δλδ όλα τα entries που ανήκουν στον κόμβο που δείχνει το entry μπαίνουν στο Arraylist entriesToCheck για να ελεγχθούν στη συνέχεια
+                        entriesToCheck.add(entries.get(i));
+                    }
+
+                }
+                else{ // η ελάχιστη απόσταση του entry και του σημείου είναι μεγαλύτερη της ακτίνας οπότε δεν γίνεται expand και όλα τα entry που ανήκουν στον κόμβο που δείχνει το τωρινό entry δε θα ελεγχθούν καν
+
+                }
+
+            }
+            entriesToCheck.remove(0);   //έχει ελεγχθεί και αφαιρείται το πρώτο στοιχείο του Arraylist
+        }
+        ArrayList<Record> knnWithRecords = new ArrayList<>(); //εντοπίζονται τα records του datafile που αντιστοιχούν στα entriesOfLeaf που βρίσκονται στο arraylist με τους κ πλησιέστερους γείτονες
+        for(int i=0;i<knn.size();i++){
+            RecordId recordId = knn.get(i).getRecordId();
+            int slot = recordId.getSlot();
+            short block = recordId.getBlock();
+            Record record = readDataFile.getTheData(block,slot);
+            knnWithRecords.add(record);
+
+        }
+        return knnWithRecords;
+    }
+
     /** Μέθοδος που βρίσκει τα σημεία που βρίσκονται στο skyline σε χρόνο εκτέλεσης Ο(n^2)
      * Για κάθε εγγραφή ελέγχει αν κυριαρχείται από έστω και μία άλλη εγγραφή. Αν δεν κυριαρχείται από καμία
      * ανήκει στο skyline
