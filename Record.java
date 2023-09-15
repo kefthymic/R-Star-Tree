@@ -1,5 +1,5 @@
 import java.util.ArrayList;
-
+import java.lang.Math;
 public class Record {
     private long osmNodeId;
     private ArrayList<Double> coordinates;
@@ -44,7 +44,14 @@ public class Record {
             return false;
         }
     }
-
+    /**Μέθοδος που δέχεται τις συντεταγμένες ενός σημείου και επιστρέφει την απόσταση από τις συντεταγμένες του Record */
+    public double distanceFromPoint(ArrayList<Double> pointCoordinates){
+        double distance = 0;
+        for(int i=0;i<this.coordinates.size();i++){
+            distance = distance + (pointCoordinates.get(i)-this.coordinates.get(i))*(pointCoordinates.get(i)-this.coordinates.get(i));
+        }
+        return Math.sqrt(distance);
+    }
 
     @Override
     public String toString() {
