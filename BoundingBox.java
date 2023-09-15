@@ -173,6 +173,63 @@ public class BoundingBox implements Serializable {
         return true;
     }
 
+    /**Μέθοδος που επιστρέφει την απόσταση μεταξύ ενός σημείου και του BoundingBox.
+     * Στις δύο διαστάσεις υπολογίζει την ελάχιστη απόσταση μεταξύ του ορθογωνίου και του σημείου,
+     * ενώ σε παραπάνω διαστάσεις επιστρέφει την απόστση μεταξύ του σημείου και του κέντρου του BoundingBox*/
+    public double findMinDistFromPoint(ArrayList<Double> pointCoordinates){
+        double distance = 0;
+        //σημείο με συντεταγμένες (x,y) και BoundingBox με συντεταγμένες (x1,x2,y1,y2)
+        double x,y,x1,x2,y1,y2;
+        x = pointCoordinates.get(0);
+        y = pointCoordinates.get(1);
+        x1 = this.getBound(0,false);
+        x2 = this.getBound(0,true);
+        y1 = this.getBound(1,false);
+        y2 = this.getBound(1,true);
+        if(this.getDimensions()==2){  //για δύο διαστάσεις
+            if(x<x1){
+                if(y<y1){
+                    distance = Math.sqrt((x1-x)*(x1-x) + (y1-y)*(y1-y));
+                }
+                else if(y<=y2){
+                    distance = x1-x;
+                }
+                else{
+                    distance = Math.sqrt((x1-x)*(x1-x) + (y2-y)*(y2-y));
+                }
+            }
+            else if(x<=x2){
+                if(y<y1){
+                    distance = y1-y;
+                }
+                else if(y<=y2){
+                    distance = 0;
+                }
+                else{
+                    distance = y-y2;
+                }
+            }
+            else{
+                if(y<y1){
+                    distance = Math.sqrt((x2-x)*(x2-x) + (y1-y)*(y1-y));
+                }
+                else if(y<=y2){
+                    distance = x-x2;
+                }
+                else{
+                    distance = Math.sqrt((x2-x)*(x2-x) + (y2-y)*(y2-y));
+                }
+            }
+            return distance;
+        }
+        else{  // για παραπάνω από δύο διαστσεις: υπολογίζεται η απόσταση από το κέντρο
+            ArrayList<Double> centerCoordinates = this.getCenter();
+            for(int i=0;i<this.getDimensions();i++){
+                distance = distance + (pointCoordinates.get(i)-centerCoordinates.get(i))*(pointCoordinates.get(i)-centerCoordinates.get(i));
+            }
+            return Math.sqrt(distance);
+        }
+    }
     /**Μέθοδος που επιστρέφει την απόσταση Μανχάταν μεταξύ της κάτω δεξιάς γωνίας του BoundingBox και της αρχής των αξόνων Ο(0,...,0) */
     public double findMinDist(){
         double minDist = 0;
