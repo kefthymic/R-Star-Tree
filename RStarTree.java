@@ -827,7 +827,239 @@ public class RStarTree {
 
         return skylineWithRecords;
     }
+    /**Μέθοδος που κατασκευάζει το R*Tree παίρνοντας τις εγγραφές μία μία από το DataFile και για κάθε μία από αυτές
+     * καλέι την insertEntry για να την εισάγει στο δέντρο */
+    public void create(){
+        short blockFromRecordId;
+        int slotOfRecordId;
+        String tempString;
+        Record tempRecord;
+        RecordId tempRecordId;
+        int help;
+        EntryOfLeaf entryOfLeaf;
 
+        short currentNodeId= indexFile.createNewNode(0);
+
+        indexFile.setTheRoot(currentNodeId);
+
+        for(int i=0;i<readDataFile.getTotalNumberOfRecords();i++) {
+            tempRecord = readDataFile.getTheData(i);
+            tempString= readDataFile.getTheTargetBlockAndTheSlotOffset(i);
+            help = tempString.indexOf("&");
+
+            blockFromRecordId= (short) Integer.parseInt(tempString.substring(0,help));
+            slotOfRecordId= Integer.parseInt(tempString.substring(help+1));
+            tempRecordId= new RecordId(blockFromRecordId, slotOfRecordId);
+
+            ArrayList<Double> bounds = new ArrayList<>();
+            ArrayList<Double> coordinates = tempRecord.getCoordinates();
+            for(int j=0;j<coordinates.size();j++){
+                bounds.add(coordinates.get(j));
+                bounds.add(coordinates.get(j));
+            }
+            BoundingBox boundingBox = new BoundingBox(bounds,coordinates.size());
+            entryOfLeaf = new EntryOfLeaf(tempRecordId,boundingBox,-1);
+            this.insertEntryOfLeaf(entryOfLeaf);
+
+        }
+    }
+    /**Μέθοδος που εισάγει ένα entry στην κατάλληλη θέση στο δέντρο */
+    public void insertEntryOfLeaf(EntryOfLeaf entryOfLeaf){
+        ArrayList<Integer> NodesAndEntriesVisited = chooseSubtree(entryOfLeaf); //μονοπάτι από κορυφή μέχρι κατάλληλο φύλλο
+        int nodeIdOfLeaf = NodesAndEntriesVisited.get(NodesAndEntriesVisited.size()-1); //id του φύλλου όπου θα εισαχθεί το entry
+        if(indexFile.addNewEntryInNode(nodeIdOfLeaf,entryOfLeaf)){ //αν υπάρχει χώρος για εισαγωγή
+            while(NodesAndEntriesVisited.size()>1){    // ενημέρωση του δέντρου(όλων των BoundingBoxes από τη ρίζα μέχρι το φύλλο) για να συμπεριλάβουν και το νέο entry
+                int IdOfVisitedNode = NodesAndEntriesVisited.get(0);   //κόμβος στο μονοπάτι
+                NodesAndEntriesVisited.remove(0);
+                int posOfEntry = NodesAndEntriesVisited.get(0);   //θέση του entry στον κόμβο
+                NodesAndEntriesVisited.remove(0);
+                Node nodeVisited = indexFile.getNodeFromTheFile(IdOfVisitedNode);
+                Entry entryVisited = nodeVisited.getEntries().get(posOfEntry);
+                BoundingBox boundingBox = entryVisited.getBoundingBox(); //boundingbox πριν την εισαγωγή
+                BoundingBox newBoundingBox = boundingBox.enlargeBoundingBoxToInsertNewEntry(entryOfLeaf);  //boundingbox μετά την εισαγωγή
+                indexFile.updateTheBoundingBoxOfAnEntryOfANode((short) IdOfVisitedNode,posOfEntry,newBoundingBox);
+            }
+        }
+        else{ //δεν υπάρχει χώρος, οπότε καλείται η overflowTreatment και μετά επιχειρείται ξανά η εισαγωγή
+            overflowTreatment(NodesAndEntriesVisited);
+            insertEntryOfLeaf(entryOfLeaf);
+        }
+    }/**Μέθοδος που υλοποιεί τον αλγόριθμο chooseSubTree και επιστρέφει το μονοπάτι των κόμβων και των entry που διέτρεξε
+     το δέντρο ξεκινώντας από την ρίζα και φτάνοντας ως το κατάλληλο φύλλο.
+     πχ αν ξεκινήσει από ρίζα με nodeId = 4, επιλέξει ως πιο κατάλληλο το entry που βρίσκεται στη θέση 3, έπειτα μεταβεί στον
+     κόμβο με nodeId = 8,  επιλέξει ως πιο κατάλληλο το entry που βρίσκεται στη θέση 1 και τέλος καταλήξει στο φύλλο με nodeId = 17,
+     η μέθοδος θα επιστρέψει ένα Arraylist της μορφής (4,3,8,1,17)
+     */
+    public ArrayList<Integer> chooseSubtree(EntryOfLeaf entryOfLeaf){
+        Node root = indexFile.getTheRoot();
+        ArrayList<Integer> NodesAndEntriesVisited = new ArrayList<>();
+        Node tempNode = root;
+
+        while (tempNode.getLevel()>0){
+            NodesAndEntriesVisited.add((int)tempNode.getNodeId());
+            ArrayList<Entry> entries = tempNode.getEntries();
+            int posOfBestEntry=0;
+            if(tempNode.getLevel()>1){
+                posOfBestEntry = 0;
+                BoundingBox boundingBox1 = entries.get(0).getBoundingBox();
+                BoundingBox boundingBox2 = boundingBox1.enlargeBoundingBoxToInsertNewEntry(entryOfLeaf);
+                double bestAreaEnlargement = boundingBox2.getArea() - boundingBox1.getArea();
+                double smallestArea = boundingBox1.getArea();
+                double areaEnlargement,area;
+                for(int i=1;i<entries.size();i++){
+                    boundingBox1 = entries.get(i).getBoundingBox();
+                    boundingBox2 = boundingBox1.enlargeBoundingBoxToInsertNewEntry(entryOfLeaf);
+                    areaEnlargement = boundingBox2.getArea()-boundingBox1.getArea();
+                    if(areaEnlargement<bestAreaEnlargement){
+                        bestAreaEnlargement = areaEnlargement;
+                        smallestArea = boundingBox1.getArea();
+                        posOfBestEntry = i;
+                    }
+                    else if(areaEnlargement==bestAreaEnlargement && boundingBox1.getArea()<smallestArea){
+                        smallestArea = boundingBox1.getArea();
+                        posOfBestEntry = i;
+                    }
+
+                }
+
+            }
+            else if(tempNode.getLevel()==1){
+                posOfBestEntry = 0;
+                BoundingBox boundingBox1 = entries.get(0).getBoundingBox();
+                BoundingBox boundingBox2 = boundingBox1.enlargeBoundingBoxToInsertNewEntry(entryOfLeaf);
+                double bestOverlap = boundingBox2.findOverlapWithOtherBox(boundingBox1);
+                double bestAreaEnlargement = boundingBox2.getArea() - boundingBox1.getArea();
+                //System.out.println("Best overlap before: "+bestOverlap+" Best areaEnlar before: "+bestAreaEnlargement);
+                double overlap, areaEnlargement;
+                for(int i=1;i<entries.size();i++){
+                    boundingBox1 = entries.get(i).getBoundingBox();
+                    boundingBox2 = boundingBox1.enlargeBoundingBoxToInsertNewEntry(entryOfLeaf);
+                    overlap = boundingBox2.findOverlapWithOtherBox(boundingBox1);
+                    areaEnlargement = boundingBox2.getArea()-boundingBox1.getArea();
+                    // System.out.println("overlap: "+overlap+"areaEnlar : "+areaEnlargement);
+                    if(overlap<bestOverlap){
+                        bestOverlap = overlap;
+                        bestAreaEnlargement = areaEnlargement;
+                        posOfBestEntry = i;
+                    }
+                    else if(overlap==bestOverlap && areaEnlargement<bestAreaEnlargement){
+                        bestAreaEnlargement = areaEnlargement;
+                        posOfBestEntry = i;
+                    }
+
+                }
+            }
+            NodesAndEntriesVisited.add(posOfBestEntry);
+            Entry bestEntry = entries.get(posOfBestEntry);
+            int childId = (int)bestEntry.getChildId();
+            tempNode = indexFile.getNodeFromTheFile(childId);
+        }
+        NodesAndEntriesVisited.add((int)tempNode.getNodeId());
+        return NodesAndEntriesVisited;
+    }
+    /** Μέθοδος που καλείτα όταν δεν υπάρχει χώρος σε ένα φύλλο για την εισαγωγή ενός entry.
+     * Αρχικά γίνεται reInsert του 30% των entries του φύλλου, κι έπειτα αν ακόμα δεν υπάρχει χώρος γίνεται split του φύλλου */
+    public void overflowTreatment(ArrayList<Integer> NodesAndEntriesVisited){
+        int IdOfLeaf = NodesAndEntriesVisited.get(NodesAndEntriesVisited.size()-1);
+        Node leaf = indexFile.getNodeFromTheFile(IdOfLeaf);
+        ArrayList<Entry> entries = leaf.getEntries();
+        int numberOfEntriesToBeRemoved = (int) (entries.size()*0.3);
+        int posOfLastEntry = entries.size()-1;
+        for(int i=0 ;i<numberOfEntriesToBeRemoved;i++){
+            EntryOfLeaf entryOfLeaf = (EntryOfLeaf)entries.get(posOfLastEntry);
+            indexFile.deleteAnEntryAndFillItWithTheLastEntryOfTheNode((short) IdOfLeaf,posOfLastEntry);
+            posOfLastEntry--;
+            insertEntryOfLeaf(entryOfLeaf);
+
+        }
+        if(leaf.getEntries().size()==indexFile.getMaxEntriesInNode()){
+            splitNode(NodesAndEntriesVisited);
+        }
+
+    }/**Μέθοδος που πραγματοποιεί το σπλιτ ενός κόμβου */
+    public void splitNode(ArrayList<Integer> NodesAndEntriesVisited){
+
+        int nodeIdToSplit = NodesAndEntriesVisited.get(NodesAndEntriesVisited.size()-1); //id του κόμβου που θα γίνει σπλιτ
+        NodesAndEntriesVisited.remove(NodesAndEntriesVisited.size()-1);
+        if(nodeIdToSplit==indexFile.getTheRoot().getNodeId()){   // αν πρόκειται για τη ρίζα υλοποιείται άλλος αλγόριθμος
+            splitRoot();
+        }
+        else{
+            int posOfEntry = NodesAndEntriesVisited.get(NodesAndEntriesVisited.size()-1); // θέση του entry στον γονέα κόμβο που δείχνει στν κόμβο που θα γίνει σπλιτ
+            NodesAndEntriesVisited.remove(NodesAndEntriesVisited.size()-1);
+            int idOfPreviousNode = NodesAndEntriesVisited.get(NodesAndEntriesVisited.size()-1); //id γονέα κόμβου
+
+
+            Node nodeToSplit = indexFile.getNodeFromTheFile(nodeIdToSplit);
+            ArrayList<Node> newNodes = nodeToSplit.split(); //οι δύο νέοι κόμβοι
+            Node node1 = newNodes.get(0);
+            Node node2 = newNodes.get(1);
+            ArrayList<Entry> entries1 = node1.getEntries();
+            ArrayList<Entry> entries2 = node2.getEntries();
+            short nodeId1 = indexFile.createNewNode(nodeToSplit.getLevel());
+            short nodeId2 = indexFile.createNewNode(nodeToSplit.getLevel());
+            for (int j = 0; j < entries1.size(); j++) { //εισαγωγή των entries
+                indexFile.addNewEntryInNode(nodeId1, entries1.get(j));
+            }
+            for (int j = 0; j < entries2.size(); j++) {
+                indexFile.addNewEntryInNode(nodeId2, entries2.get(j));
+
+            }
+            //ορισμός των boundingBoxes των entries που θα δείχνουν στους νέους κόβους
+            BoundingBox boundingBox1 = BoundingBox.findBoundingBoxToFitAllEntries(entries1);
+            BoundingBox boundingBox2 = BoundingBox.findBoundingBoxToFitAllEntries(entries2);
+            Entry entry1 = new Entry(boundingBox1,nodeId1); //τα entries που θα δείχνουν στους νέους κόμβους
+            Entry entry2 = new Entry(boundingBox2,nodeId2);
+            indexFile.deleteAnEntryAndFillItWithTheLastEntryOfTheNode((short)idOfPreviousNode,posOfEntry);
+            indexFile.addNewEntryInNode(idOfPreviousNode,entry1); //εισαγωγή των entries στον κόμβο γονέα
+            indexFile.addNewEntryInNode(idOfPreviousNode,entry2);
+            Node previousNode = indexFile.getNodeFromTheFile(idOfPreviousNode);
+            if(previousNode.getEntries().size()==indexFile.getMaxEntriesInNode()){ //έλεγχος για αν και ο γονέας χρειάζεται τώρα σπλιτ
+                splitNode(NodesAndEntriesVisited); //αν ναι, κλήση του σπλιτ για τον γονέα παίρνοντας ως παράμετρο το μονοπάτι από ρίζα μέχρι τον γονέα
+            }
+
+
+
+
+        }
+    }/** Mέθοδος που πραγματοποιεί το split της ρίζας */
+    public void splitRoot(){
+        Node root = indexFile.getTheRoot();
+        ArrayList<Node> newNodes = root.split();
+        Node node1 = newNodes.get(0);
+        Node node2 = newNodes.get(1);
+        ArrayList<Entry> entries1 = node1.getEntries();
+        ArrayList<Entry> entries2 = node2.getEntries();
+        short nodeId1 = indexFile.createNewNode(node2.getLevel());
+        short nodeId2 = indexFile.createNewNode(node2.getLevel());
+        short nodeId3 = indexFile.createNewNode(node2.getLevel()+1);
+        for (int j = 0; j < entries1.size(); j++) {
+            indexFile.addNewEntryInNode(nodeId1, entries1.get(j));
+        }
+        for (int j = 0; j < entries2.size(); j++) {
+            indexFile.addNewEntryInNode(nodeId2, entries2.get(j));
+        }
+        BoundingBox boundingBox1 = BoundingBox.findBoundingBoxToFitAllEntries(entries1);
+        BoundingBox boundingBox2 = BoundingBox.findBoundingBoxToFitAllEntries(entries2);
+
+        Entry entry1 = new Entry(boundingBox1,nodeId1);
+        Entry entry2 = new Entry(boundingBox2,nodeId2);
+        indexFile.addNewEntryInNode(nodeId3,entry1);
+        indexFile.addNewEntryInNode(nodeId3,entry2);
+        indexFile.setTheRoot(nodeId3);
+
+
+    }
+
+    void print(){
+        Node root = indexFile.getTheRoot();
+        System.out.println("Root has ID: "+ root.getNodeId());
+        ArrayList<Entry> entries = root.getEntries();
+        System.out.println("Root has kids: "+entries.size());
+        for(int i=0;i<entries.size();i++){
+            System.out.println("Entry has childID: "+entries.get(i).getChildId());
+        }
+    }
     /**
      * Helpful class that is needed to do the bottomUp. Every record is saved there, with its zOrderingNumber and its position in the dataFile
      */
