@@ -119,15 +119,16 @@ public class BoundingBox implements Serializable {
         }
         return false;
     }
-    /* μέθοδος που διευρύνει τα όρια ενός bounding Box για να προστεθεί ένα ακόμη entry*/
-    public void enlargeBoundingBoxToInsertNewEntry(Entry entry){
+    /* μέθοδος που διευρύνει τα όρια ενός bounding Box για να προστεθεί ένα ακόμη entry και επιστρέφει το νέο BoundingBox*/
+    public BoundingBox enlargeBoundingBoxToInsertNewEntry(Entry entry){
         BoundingBox boundingBoxOfEntry = entry.getBoundingBox();
         ArrayList<Double> newBounds = new ArrayList<>();
         for(int i=0;i<dimensions;i++){
             newBounds.add(min(this.getBound(i,false),boundingBoxOfEntry.getBound(i,false)));
             newBounds.add(max(this.getBound(i,true),boundingBoxOfEntry.getBound(i,true)));
         }
-        this.setBounds(newBounds);
+        BoundingBox newBoundingBox = new BoundingBox(newBounds,this.getDimensions());
+        return newBoundingBox;
     }
 
 
