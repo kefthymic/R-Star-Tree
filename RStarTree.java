@@ -578,41 +578,15 @@ public class RStarTree {
         return solution;
     }
 
-    /**Μέθοδος που υπολογίζει και επιστρέφει σε ένα Arraylist<Record> τους κ πλησιέστερους γείτονες σειριακά. */
-    public ArrayList<Record> knnLinear(int k, ArrayList<Double> pointCoordinates){
-        double distance;
-        ArrayList<Record> knn = new ArrayList<>();
 
-        Record record = readDataFile.getTheData(0);
-        knn.add(record);
-
-        for(int i=1;i<readDataFile.getTotalNumberOfRecords();i++){
-            boolean inserted = false;
-            record = readDataFile.getTheData(i);
-            for(int j=0;j<knn.size();j++){
-                if(record.distanceFromPoint(pointCoordinates)<knn.get(j).distanceFromPoint(pointCoordinates)){
-                    knn.add(j,record);
-                    inserted = true;
-                    break;
-                }
-            }
-            if(knn.size()<k && !inserted){
-                knn.add(record);
-            }
-            if(knn.size()==k+1){
-                knn.remove(k);
-            }
-
-        }
-        return knn;
-    }
 
     /**Μέθοδος που δέχεται έναν ακέραιο κ και τις συντεταγμένες ενός σημείου και επιστρέφει του κ πλησιέστερους γείτονες του σημείου */
     public ArrayList<Record> knn(int k, ArrayList<Double> pointCoordinates){
         Node root= indexFile.getTheRoot(); //ξεκινάει από ρίζα με στόχο να βρει το φύλλο που απέχει το λιγότερο από το σημείο
         ArrayList<Entry> entriesOfRoot = root.getEntries();
         if(entriesOfRoot.get(0).getChildId()==-1){ //αν η ρίζσ είναι φύλλο, σημαίνει ότι υπάρχει μόνος ένας κόμβος στο δέντρο, οπότε καλείται η εύρεση των κ γειτόνων σειριακά
-            return knnLinear(k,pointCoordinates);
+            LinearMethods linearMethods = new LinearMethods();
+            return linearMethods.knnLinear(k,pointCoordinates);
         }
         int posOfBestEntry = 0;  //λαμβάνεται ως entry αναφοράς το πρώτο entry του κόμβου
         double minDistance = entriesOfRoot.get(0).getBoundingBox().findMinDistFromPoint(pointCoordinates);
@@ -733,32 +707,7 @@ public class RStarTree {
         return knnWithRecords;
     }
 
-    /** Μέθοδος που βρίσκει τα σημεία που βρίσκονται στο skyline σε χρόνο εκτέλεσης Ο(n^2)
-     * Για κάθε εγγραφή ελέγχει αν κυριαρχείται από έστω και μία άλλη εγγραφή. Αν δεν κυριαρχείται από καμία
-     * ανήκει στο skyline
-     */
-    public ArrayList<Record> skylineBruteForce(){
-        ArrayList<Record> skyline = new ArrayList<>();
-        Record recordI;
-        Record recordJ;
-        for(int i=0;i<readDataFile.getTotalNumberOfRecords();i++){
-            boolean dominatesAll = true;
-            recordI = readDataFile.getTheData(i);
-            for(int j=0;j<readDataFile.getTotalNumberOfRecords();j++){
-                if(i!=j){
-                    recordJ = readDataFile.getTheData(j);
-                    if(recordJ.dominatesAnotherRecord(recordI)){
-                        dominatesAll = false;
-                        break;
-                    }
-                }
-            }
-            if(dominatesAll){
-                skyline.add(recordI);
-            }
-        }
-        return skyline;
-    }
+
     /** Βοηθητική μέθοδος για το skyline. Επιστρέφει true αν τα στοιχεία που ήδη βρίσκονται στο skyline
      * κυριαρχούν επί ενός entry που δέχεται ως παράμετρο (δλδ αν έστω ένα στοιχείο του skyline κυριαρχεί επί του entry) */
     private boolean skylineDominatesEntry(ArrayList<EntryOfLeaf> skyline, Entry entry){
