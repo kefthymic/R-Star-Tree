@@ -112,7 +112,7 @@ public class Node implements Serializable {
                 ArrayList<Entry> firstGroup = new ArrayList<>();
                 ArrayList<Entry> secondGroup = new ArrayList<>();
 
-                for(int j=0;j<MAX_ENTRIES+1;j++){
+                for(int j=0;j<sortedEntriesByLowerValue.size();j++){
                     if(j<numberOfEntriesInFirstGroup){
                         firstGroup.add(sortedEntriesByLowerValue.get(j));
                     }
@@ -131,7 +131,7 @@ public class Node implements Serializable {
                 int numberOfEntriesInSecondGroup = sortedEntriesByUpperValue.size()-numberOfEntriesInFirstGroup;
                 ArrayList<Entry> firstGroup = new ArrayList<>();
                 ArrayList<Entry> secondGroup = new ArrayList<>();
-                for(int j=0;j<MAX_ENTRIES+1;j++){
+                for(int j=0;j<sortedEntriesByLowerValue.size();j++){
                     if(j<numberOfEntriesInFirstGroup){
                         firstGroup.add(sortedEntriesByUpperValue.get(j));
                     }
@@ -178,7 +178,7 @@ public class Node implements Serializable {
             ArrayList<Entry> firstGroup = new ArrayList<>();
             ArrayList<Entry> secondGroup = new ArrayList<>();
 
-            for(int j=0;j<MAX_ENTRIES+1;j++){
+            for(int j=0;j<sortedEntriesByLowerValue.size();j++){
                 if(j<numberOfEntriesInFirstGroup){
                     firstGroup.add(sortedEntriesByLowerValue.get(j));
                 }
@@ -213,7 +213,7 @@ public class Node implements Serializable {
             int numberOfEntriesInSecondGroup = sortedEntriesByUpperValue.size()-numberOfEntriesInFirstGroup;
             ArrayList<Entry> firstGroup = new ArrayList<>();
             ArrayList<Entry> secondGroup = new ArrayList<>();
-            for(int j=0;j<MAX_ENTRIES+1;j++){
+            for(int j=0;j<sortedEntriesByUpperValue.size();j++){
                 if(j<numberOfEntriesInFirstGroup){
                     firstGroup.add(sortedEntriesByUpperValue.get(j));
                 }
@@ -245,7 +245,7 @@ public class Node implements Serializable {
         ArrayList<Entry> bestFirstGroup = new ArrayList<>();
         ArrayList<Entry> bestSecondGroup = new ArrayList<>();
         if(IsBestDistributionSortedByUpperValue){
-            for(int i=0;i<MAX_ENTRIES+1;i++){
+            for(int i=0;i<sortedEntriesByUpperValue.size();i++){
                 if(i<numberOfEntriesInFirstGroupForTheBestDistribution){
                     bestFirstGroup.add(sortedEntriesByUpperValue.get(i));
                 }
@@ -255,7 +255,7 @@ public class Node implements Serializable {
             }
         }
         else{
-            for(int i=0;i<MAX_ENTRIES+1;i++){
+            for(int i=0;i<sortedEntriesByLowerValue.size();i++){
                 if(i<numberOfEntriesInFirstGroupForTheBestDistribution){
                     bestFirstGroup.add(sortedEntriesByLowerValue.get(i));
                 }
