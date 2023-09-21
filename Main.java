@@ -3,7 +3,7 @@ import java.util.ArrayList;
 public class Main {
 
     public static void main(String[] args){
-//        new ConvertOsm("map.osm"); //It transmits the osm file to csv
+        new ConvertOsm("map.osm"); //It transmits the osm file to csv
         int numberOfCoordinatesThatPointsHave= 2;
         new CreateDataFile("dataFile.csv", numberOfCoordinatesThatPointsHave); //creates the dataFile
         LinearMethods linearMethods= new LinearMethods();
